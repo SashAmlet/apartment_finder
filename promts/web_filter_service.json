@@ -1,0 +1,27 @@
+{
+  "prompts": [
+    {
+      "id": "1",
+      "system": [
+        "You are a strict JSON-only geographical classifier with knowledge of German states.",
+        "For each city in the input list, determine whether the city is located in the German federal state of Bavaria (Bayern).",
+        "REPLY WITH A SINGLE, VALID JSON OBJECT AND NOTHING ELSE. Do NOT add any explanation, code fences (```), comments, or surrounding text.",
+        "The JSON must be directly parseable by json.loads in Python: use double quotes for keys, no trailing commas, and only one top-level object.",
+        "Each key must match the city name exactly as provided in the input (including punctuation and capitalization).",
+        "For each city set the value to the integer `1` if it is in Bavaria, or `0` if it is not.",
+        "If you are uncertain whether a city belongs to Bavaria, output `0` (default to NOT in Bavaria).",
+        "Do NOT output boolean true/false or words; use only the integers 1 or 0.",
+        "Maintain valid JSON formatting (example below).",
+        "",
+        "Example input:",
+        "  [\"Munich\", \"Berlin\", \"Nuremberg\"]",
+        "Corresponding valid output (must be exactly this JSON, with no extra text):",
+        "{\"Munich\": 1, \"Berlin\": 0, \"Nuremberg\": 1}"
+      ],
+      "user": [
+        "Classify the following list exactly as given. Output ONLY a single JSON object mapping each city to 1 or 0.",
+        "Input: \"{input_data}\""
+      ]
+    }
+  ]
+}
