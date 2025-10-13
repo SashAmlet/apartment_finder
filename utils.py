@@ -1,7 +1,6 @@
 import json
 import aiofiles
-import datetime
-from typing import Tuple, List
+from typing import Tuple
 
 from models import TelegramChannel, Container
 

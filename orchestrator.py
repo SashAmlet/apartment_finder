@@ -21,9 +21,9 @@ class Orchestrator:
     @classmethod
     async def create(cls):
         services = [
-            TgParserService(api_id=os.getenv("TG_API_ID"), api_hash=os.getenv("TG_API_HASH"), password=os.getenv("TG_PASSWORD")),
+            await TgParserService.create(api_id=os.getenv("TG_API_ID"), api_hash=os.getenv("TG_API_HASH"), password=os.getenv("TG_PASSWORD")),
             await TgFilterService.create(api_key=os.getenv("GEMINI_API_KEY"), ml_model_path="RF_model_2025-10-07_23-15-48.joblib"),
-            PublisherService(bot_token = os.getenv("TG_BOT_TOKEN"), channel_username = os.getenv("TG_CHANNEL_USERNAME")),
+            await PublisherService.create(bot_token = os.getenv("TG_BOT_TOKEN"), channel_username = os.getenv("TG_CHANNEL_USERNAME")),
         ]
         return cls(services)
 

@@ -21,6 +21,10 @@ class PublisherService(Service):
         self.bot = Bot(token=bot_token)
         self.channel_username = channel_username
 
+    @classmethod
+    async def create(cls, bot_token: str, channel_username: str) -> "PublisherService":
+        return cls(bot_token, channel_username)
+
     async def run(self, container: Container):
         """
         Публикует результаты из структуры Container в Telegram-канал.

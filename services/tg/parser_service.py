@@ -31,6 +31,18 @@ class TgParserService(Service):
         self.client = TelegramClient(session_name, api_id, api_hash)
         self.password = password
 
+    def __dell__(self):
+        if self.client.is_connected():
+            self.client.disconnect()
+            print("[INFO] Telegram client disconnected.")
+
+    @classmethod
+    async def create(cls, api_id: int, api_hash: str, password: str, session_name: str = "anon-usr-vasa") -> "TgParserService":
+        self = cls(api_id, api_hash, password, session_name)
+        await self.client.connect()
+        print("[INFO] Telegram client connected.")
+        return self
+
     async def _join_channel(self, url: str):
         """
         Попытка вступить в канал/группу.
@@ -49,7 +61,6 @@ class TgParserService(Service):
             print(f"[WARN] Failed to join {url}: {e}")
 
     async def run(self, container: Container) -> Container:
-        await self.client.start()
         cutoff_date = datetime.now() - SEARCH_PERIOD
 
         channels: List[TelegramChannel] = container.channels
@@ -85,5 +96,4 @@ class TgParserService(Service):
                 print(f"[ERROR] Error while processing {channel.url}: {e}")
                 channel.messages = []
 
-        await self.client.disconnect()
         return Container(channels=channels)
