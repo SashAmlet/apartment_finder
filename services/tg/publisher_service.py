@@ -52,7 +52,7 @@ class PublisherService(Service):
                     parse_mode=ParseMode.HTML,
                     disable_web_page_preview=True
                 )
-                print("[INFO] Message sent successfully.")
+                # print("[INFO] Message sent successfully.")
                 return
 
             except asyncio.TimeoutError:
@@ -60,8 +60,8 @@ class PublisherService(Service):
                 await asyncio.sleep(5 * attempt)  # экспоненциальная задержка
 
             except RetryAfter as e:
-                print(f"[WARN] Flood control: waiting {e.seconds} seconds...")
-                await asyncio.sleep(e.seconds)
+                print(f"[WARN] Flood control: waiting {e.retry_after} seconds...")
+                await asyncio.sleep(e.retry_after)
                 # продолжаем с той же попытки после ожидания
 
             except Exception as e:
