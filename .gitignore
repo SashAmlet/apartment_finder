@@ -14,5 +14,6 @@ __pycache__
 *.pyw
 *.pyz
 *.session
+*.session-journal
 
 _local_/

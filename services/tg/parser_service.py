@@ -31,17 +31,15 @@ class TgParserService(Service):
         self.client = TelegramClient(session_name, api_id, api_hash)
         self.password = password
 
-    def __dell__(self):
-        if self.client.is_connected():
-            self.client.disconnect()
-            print("[INFO] Telegram client disconnected.")
-
-    @classmethod
-    async def create(cls, api_id: int, api_hash: str, password: str, session_name: str = "anon-usr-vasa") -> "TgParserService":
-        self = cls(api_id, api_hash, password, session_name)
+    async def __aenter__(self):
         await self.client.connect()
         print("[INFO] Telegram client connected.")
         return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.client.is_connected():
+            await self.client.disconnect()
+            print("[INFO] Telegram client disconnected.")
 
     async def _join_channel(self, url: str):
         """

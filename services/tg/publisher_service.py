@@ -4,7 +4,8 @@ import random
 
 from telegram import Bot
 from telegram.constants import ParseMode
-from telethon.errors import FloodWaitError
+from telegram.error import RetryAfter
+
 
 from models import Container, TelegramChannel, TelegramMessage
 from services.base import Service
@@ -23,10 +24,6 @@ class PublisherService(Service):
 
         self.bot = Bot(token=bot_token)
         self.channel_username = channel_username
-
-    @classmethod
-    async def create(cls, bot_token: str, channel_username: str) -> "PublisherService":
-        return cls(bot_token, channel_username)
 
     async def run(self, container: Container):
         """
@@ -62,13 +59,14 @@ class PublisherService(Service):
                 print(f"[WARN] Timeout — retrying ({attempt}/{max_retries})...")
                 await asyncio.sleep(5 * attempt)  # экспоненциальная задержка
 
-            except FloodWaitError as e:
+            except RetryAfter as e:
                 print(f"[WARN] Flood control: waiting {e.seconds} seconds...")
                 await asyncio.sleep(e.seconds)
                 # продолжаем с той же попытки после ожидания
 
             except Exception as e:
                 print(f"[ERROR] Unexpected error on attempt {attempt}: {e}")
+                # print(f"[DEBUG] Exception type: {type(e)} | Module: {type(e).__module__}")
                 await asyncio.sleep(2)
 
         print(f"[ERROR] Failed to send message after {max_retries} attempts.")
