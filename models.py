@@ -20,4 +20,4 @@ class TelegramChannel:
 
 @dataclass
 class Container:
-    channels: List[TelegramChannel]
+    channels: List[TelegramChannel] 

@@ -25,25 +25,46 @@ class PublisherService(Service):
         self.bot = Bot(token=bot_token)
         self.channel_username = channel_username
 
-    async def run(self, container: Container):
+    async def run(self, container: Container) -> Container:
         """
         Публикует результаты из структуры Container в Telegram-канал.
         """
+        not_sent_container = Container(channels=[])
+
         for channel in container.channels:
             if not channel.messages:
                 continue
 
+            not_sent_msgs = []
             for msg in channel.messages:
                 text = self._format_message(channel, msg)
                 try:
-                    
-                    await self.safe_send_message(text)
+                    if not await self.safe_send_message(text):
+                        not_sent_msgs.append(msg)
+
                     await asyncio.sleep(random.uniform(1.5, 3.5))
                 except Exception as e:
                     print(f"❌ Ошибка при публикации сообщения: {e}")
+                    not_sent_msgs.append(msg)
+
+            if not_sent_msgs:
+                existing = next((ch for ch in not_sent_container.channels if ch.url == channel.url), None)
+                if existing:
+                    existing.messages.extend(not_sent_msgs)
+                else:
+                    not_sent_channel = TelegramChannel(
+                        name=channel.name,
+                        url=channel.url,
+                        city=channel.city,
+                        messages=not_sent_msgs
+                    )
+                    not_sent_container.channels.append(not_sent_channel)
+
+        return not_sent_container
 
 
-    async def safe_send_message(self, text: str, max_retries: int = 5):
+
+    async def safe_send_message(self, text: str, max_retries: int = 5) -> bool:
         for attempt in range(1, max_retries + 1):
             try:
                 await self.bot.send_message(
@@ -53,7 +74,7 @@ class PublisherService(Service):
                     disable_web_page_preview=True
                 )
                 # print("[INFO] Message sent successfully.")
-                return
+                return True
 
             except asyncio.TimeoutError:
                 print(f"[WARN] Timeout — retrying ({attempt}/{max_retries})...")
@@ -70,6 +91,7 @@ class PublisherService(Service):
                 await asyncio.sleep(2)
 
         print(f"[ERROR] Failed to send message after {max_retries} attempts.")
+        return False
 
 
     def _format_message(self, channel: TelegramChannel, msg: TelegramMessage) -> str:
