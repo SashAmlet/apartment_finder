@@ -100,6 +100,33 @@ class TgFilterService(Service):
 
         return accept, reject, ambiguous
     
+    def _clean_ai_response_text(self, raw_text: str) -> str:
+        """
+        Очищает текст ответа модели от мусора, неправильных экранирований и
+        подготавливает к JSON-десериализации.
+        """
+        if not raw_text:
+            return ""
+
+        cleaned = raw_text.strip()
+
+        # 1️⃣ Удаляем Markdown/LLM-маркеры вроде ```json``` или ```
+        cleaned = re.sub(r"(?s)```json|```", "", cleaned).strip()
+
+        # 2️⃣ Поправляем некорректные escape-последовательности
+        # (заменяем одинарные обратные слэши на двойные, кроме допустимых)
+        cleaned = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', cleaned)
+        cleaned = cleaned.replace('\\\\\"', '\\"')
+
+        # 3️⃣ Экранируем кавычки внутри "text"
+        cleaned = re.sub(
+            r'("text":\s*")((?:[^"\\]|\\.)*)"',
+            lambda m: '"text": "{}"'.format(m.group(2).replace('"', r'\"')),
+            cleaned
+        )
+
+        return cleaned
+    
     async def ai_analyzer(self, messages: List[TelegramMessage]) -> Tuple[List[TelegramMessage], List[TelegramMessage]]:
         """
         Использует Google Gemini для анализа сообщений пакетами по 5.
@@ -138,11 +165,7 @@ class TgFilterService(Service):
                 raw_text = response.text.strip()
 
                 # 🧹 Удаляем LLM-маркеры и мусор
-                cleaned = re.sub(r"(?s)```json|```", "", raw_text).strip()
-
-                # 🩹 Поправляем некорректные escape-последовательности
-                # заменяем одинарные обратные слэши на двойные (кроме допустимых вроде \n, \t)
-                cleaned = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', cleaned)
+                cleaned = self._clean_ai_response_text(raw_text) 
 
                 # 🧩 Ищем JSON-массив в тексте
                 match = re.search(r"\[.*\]", cleaned, re.DOTALL)
