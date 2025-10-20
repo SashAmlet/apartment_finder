@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from telethon import TelegramClient
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
+from telethon.errors.rpcerrorlist import UserAlreadyParticipantError, InviteHashExpiredError, UsernameNotOccupiedError
 
 from services.base import Service
 from models import Container, TelegramChannel, TelegramMessage
@@ -54,9 +55,18 @@ class TgParserService(Service):
                 # публичный канал
                 username = url.split("/")[-1]
                 await self.client(JoinChannelRequest(username))
+
+        except UserAlreadyParticipantError:
+            # ЭТО НЕ ОШИБКА! Это ожидаемое поведение. Логируем как INFO.
+            print(f"[INFO] Already a member of {url}. Skipping join.")
+        
+        except (InviteHashExpiredError, UsernameNotOccupiedError) as e:
+            # Это реальные проблемы с каналом, которые стоит отметить.
+            print(f"[WARN] Could not join {url}: {e.__class__.__name__}:\n{e}")
+
         except Exception as e:
-            # возможно уже состоим или канал закрыт
-            print(f"[WARN] Failed to join {url}: {e}")
+            # Все остальные, неожиданные ошибки.
+            print(f"[ERROR] An unexpected error occurred when trying to join {url}: {e}")
 
     async def run(self, container: Container) -> Container:
         cutoff_date = datetime.now() - SEARCH_PERIOD
