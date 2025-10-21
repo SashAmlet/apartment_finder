@@ -1,65 +1,66 @@
-import os
 import copy
-from datetime import datetime
-from typing import Any
-from dotenv import load_dotenv
-
-from services.base import Service
-from services.tg.parser_service import TgParserService
-from services.tg.filter_service import TgFilterService
-from services.tg.publisher_service import PublisherService
-
+from typing import Any, Dict
 from models import Container
-
-load_dotenv() 
+from service_factory import ServiceFactory
+from session_manager import SessionManager
 
 class Orchestrator:
-    def __init__(self, services):
-        self.services = services
-        self.timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.save_cache = {} 
-        self.base_folder = "data"
+    """
+    Управляет выполнением пайплайна сервисов на основе конфигурационного файла.
+    Поддерживает опциональное переиспользование артефактов (кэша)
+    из предыдущих запусков (сессий).
+    """
+    def __init__(self, config: Dict, session_manager: SessionManager):
+        """
+        Инициализируется конфигурацией пайплайна и менеджером сессий.
+        """
+        self.pipeline_config = config.get('pipeline', [])
+        self.run_config = config.get('run_config', {})
+        self.session_manager = session_manager
+        self.service_factory = ServiceFactory()
+        print("[Orchestrator] Initialized with config-driven pipeline.")
 
-    @classmethod
-    async def create(cls):
-        tg_parser = TgParserService(
-            api_id=os.getenv("TG_API_ID"),
-            api_hash=os.getenv("TG_API_HASH"),
-            password=os.getenv("TG_PASSWORD")
-        )
-        tg_filter = await TgFilterService.create(
-            api_key=os.getenv("GEMINI_API_KEY"),
-            ml_model_path="RF_model_2025-10-07_23-15-48.joblib"
-        )
-        tg_publisher = PublisherService(
-            bot_token=os.getenv("TG_BOT_TOKEN"),
-            channel_username=os.getenv("TG_CHANNEL_USERNAME")
-        )
+    async def run(self, initial_input: Container) -> None:
+        """
+        Выполняет пайплайн, определенный в конфигурационном файле.
+        """
+        current_data = initial_input
+        
+        source_session_id = self.run_config.get('source_session_id', 'none')
+        source_session_path = self.session_manager.find_session_path(source_session_id)
 
-        return cls([tg_parser, tg_filter, tg_publisher])
+        if source_session_path:
+            print(f"[INFO] Using source session for cache: {source_session_path}")
+        else:
+            print(f"[WARN] Source session '{source_session_id}' not found. Cache will not be used.")
 
-    async def __aenter__(self):
-        for service in self.services:
-            if hasattr(service, "__aenter__"):
-                await service.__aenter__()
-        return self
+        for step_config in self.pipeline_config:
+            service_name = step_config['service']
+            use_cache = step_config.get('use_cache', False)
+            
+            cached_data = None
+            if use_cache and source_session_path:
+                print(f"[INFO] Attempting to load cached snapshot for '{service_name}'...")
+                cached_data = await self.session_manager.load_snapshot(source_session_path, service_name)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        for service in self.services:
-            if hasattr(service, "__aexit__"):
-                await service.__aexit__(exc_type, exc_val, exc_tb)
-        print("[INFO] All services properly closed.")
+            if cached_data:
+                print(f"[INFO] >>> Cache HIT for '{service_name}'. Skipping execution.")
+                current_data = cached_data
+            else:
+                if use_cache:
+                    print(f"[INFO] >>> Cache MISS for '{service_name}'. Running service.")
+                
+                # Создаем сервис с параметрами из конфига
+                service = self.service_factory.create_service(
+                    name=service_name, 
+                    params=step_config.get('params', {})
+                )
 
-    async def run(self, initial_input: Any) -> dict[str, Container]:
-        data = initial_input
+                # Запускаем реальную логику сервиса
+                current_data = await service.run(current_data)
+            
+            # Сохраняем результат (новый или из кэша) как артефакт ТЕКУЩЕЙ сессии
+            await self.session_manager.save_snapshot(service_name, copy.deepcopy(current_data))
 
-        snapshots = {}
-
-        for service in self.services:
-            if not isinstance(service, Service):
-                raise TypeError(f"{service} must inherit from Service")
-
-            data = await service.run(data)
-            snapshots[f"{service.__class__.__name__}"] = copy.deepcopy(data)
-
-        return snapshots
+        print("\n[INFO] Pipeline finished successfully.")
+        print(f"[INFO] All artifacts for this run are saved in: {self.session_manager.session_path}")

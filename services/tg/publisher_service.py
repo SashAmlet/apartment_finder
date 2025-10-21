@@ -11,7 +11,7 @@ from models import Container, TelegramChannel, TelegramMessage
 from services.base import Service
 
 
-class PublisherService(Service):
+class TgPublisherService(Service):
     """
     Сервис для публикации результатов анализа в Telegram-канал.
     """
