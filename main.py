@@ -1,9 +1,11 @@
 import asyncio
 import json
+
 from models import Container
 from orchestrator import Orchestrator
 from session_manager import SessionManager
-from utils import load_channels # Ваш существующий загрузчик
+
+from utils import load_channels
 
 async def main():
     """

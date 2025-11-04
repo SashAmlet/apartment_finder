@@ -37,7 +37,7 @@ class TgFilterService(Service):
             if ml_model_name == "RandomForest":
                 ml_model = RandomForestMessageClassifier()
 
-            ml_model_path = os.path.join(os.path.dirname(__file__), "..", "..", "models", ml_model_path)
+            ml_model_path = os.path.join(os.path.dirname(__file__), "..", "..", ml_model_path)
             await ml_model.load(ml_model_path)
         else:
             assert isinstance(ml_model, Classifier), "ml_model must be an instance of Classifier"
@@ -67,7 +67,9 @@ class TgFilterService(Service):
             strict_accept, rej, ambiguous = await self.classify_messages(channel.messages)
 
             # Обработка сомнительных сообщений через Gemini
-            gemini_accept, _ = await self.ai_analyzer(ambiguous)
+            gemini_accept: List[TelegramMessage] = []
+            if ambiguous:
+                gemini_accept, _ = await self.ai_analyzer(ambiguous)
 
             # Формируем итог
             channel.messages = strict_accept + gemini_accept

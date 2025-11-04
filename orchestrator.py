@@ -1,8 +1,11 @@
 import copy
-from typing import Any, Dict
+from typing import Dict
 from models import Container
+
 from service_factory import ServiceFactory
 from session_manager import SessionManager
+
+from models import Container
 
 class Orchestrator:
     """
@@ -18,7 +21,7 @@ class Orchestrator:
         self.run_config = config.get('run_config', {})
         self.session_manager = session_manager
         self.service_factory = ServiceFactory()
-        print("[Orchestrator] Initialized with config-driven pipeline.")
+        print("[INFO] Orchestrator is initialized with config-driven pipeline.")
 
     async def run(self, initial_input: Container) -> None:
         """
@@ -36,6 +39,7 @@ class Orchestrator:
 
         for step_config in self.pipeline_config:
             service_name = step_config['service']
+            params = step_config.get('params', {})
             use_cache = step_config.get('use_cache', False)
             
             cached_data = None
@@ -51,13 +55,21 @@ class Orchestrator:
                     print(f"[INFO] >>> Cache MISS for '{service_name}'. Running service.")
                 
                 # Создаем сервис с параметрами из конфига
-                service = self.service_factory.create_service(
+                service = await self.service_factory.create_service(
                     name=service_name, 
-                    params=step_config.get('params', {})
+                    params=params
                 )
 
                 # Запускаем реальную логику сервиса
-                current_data = await service.run(current_data)
+                if hasattr(service, "__aenter__") and hasattr(service, "__aexit__"):    
+                    print(f"[INFO] Orchestrator is running '{service_name}' within context...")
+                    async with service:
+                        current_data = await service.run(current_data)
+                    
+                else:
+                    # Сервис не требует управления жизненным циклом
+                    print(f"[INFO] Orchestrator is running '{service_name}'...")
+                    current_data = await service.run(current_data)
             
             # Сохраняем результат (новый или из кэша) как артефакт ТЕКУЩЕЙ сессии
             await self.session_manager.save_snapshot(service_name, copy.deepcopy(current_data))

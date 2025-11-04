@@ -5,14 +5,14 @@
   "pipeline": [
     {
       "service": "TgParserService",
-      "use_cache": true,
+      "use_cache": false,
       "params": {
         "search_period_days": 7
       }
     },
     {
       "service": "TgFilterService",
-      "use_cache": true,
+      "use_cache": false,
       "params": {
         "ml_model_path": "models/RF_model_2025-10-07_23-15-48.joblib"
       }
@@ -21,7 +21,7 @@
        "service": "TgPublisherService",
        "use_cache": false,
        "params": {
-         "target_channel": "@my_apartment_finder_channel"
+         "channel_username": "@find_home_bayern"
        }
     }
   ]
