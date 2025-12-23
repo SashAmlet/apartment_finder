@@ -6,6 +6,8 @@ from services.base import Service
 from services.tg.parser_service import TgParserService
 from services.tg.filter_service import TgFilterService
 from services.tg.publisher_service import TgPublisherService
+from services.web.filter_service import WebFilterService
+from services.web.parser_service import WebParserService
 
 load_dotenv()
 
@@ -25,9 +27,11 @@ class ServiceFactory:
         """
         # Карта, сопоставляющая имя сервиса с асинхронным методом, который его создает
         self._builders: Dict[str, Callable[[Dict[str, Any]], Awaitable[Service]]] = {
-            "TgParserService": self._build_parser_service,
-            "TgFilterService": self._build_filter_service,
+            "TgParserService": self._build_tg_parser_service,
+            "TgFilterService": self._build_tg_filter_service,
             "TgPublisherService": self._build_publisher_service,
+            "WebFilterService": self._build_web_filter_service,
+            "WebParserService": self._build_web_parser_service,
         }
 
 
@@ -58,7 +62,7 @@ class ServiceFactory:
 
     # --- Методы-Строители (Builders) ---
 
-    async def _build_parser_service(self, params: Dict[str, Any]) -> Service:
+    async def _build_tg_parser_service(self, params: Dict[str, Any]) -> Service:
         """Строитель для TgParserService."""
         init_args = {
             'api_id': int(os.getenv("TG_API_ID")),
@@ -73,7 +77,7 @@ class ServiceFactory:
         
         return TgParserService(**init_args)
 
-    async def _build_filter_service(self, params: Dict[str, Any]) -> Service:
+    async def _build_tg_filter_service(self, params: Dict[str, Any]) -> Service:
         """
         Асинхронный строитель для TgFilterService.
         Вызывает асинхронный `create` метод сервиса.
@@ -101,3 +105,25 @@ class ServiceFactory:
         }
         
         return TgPublisherService(**init_args)
+    
+    async def _build_web_filter_service(self, params: Dict[str, Any]) -> Service:
+        """Строитель для WebFilterService."""
+        create_args = {
+            'api_key': os.getenv("GEMINI_API_KEY"),
+            'model': params['model'],
+            'strategy': params['strategy'],
+            'target_region_set': set(params['target_region_set'])
+        }
+        
+        # Необязательные параметры из config.json
+        if 'model' in params:
+            create_args['model'] = params['model']
+        
+        return WebFilterService(**create_args)
+    
+    async def _build_web_parser_service(self, params: Dict[str, Any]) -> Service:
+        """Строитель для WebParserService."""
+        init_args = {
+        }
+        
+        return WebParserService(**init_args)

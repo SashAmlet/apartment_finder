@@ -1,4 +1,5 @@
-[
+{
+    "channels": [
     "TelegramChannel(city='Aachen', name='https://t.me/pomoshukraineaachen', url='https://t.me/pomoshukraineaachen', messages=None)",
     "TelegramChannel(city='Aachen', name='https://t.me/aachen_uk', url='https://t.me/aachen_uk', messages=None)",
     "TelegramChannel(city='Aachen', name='https://t.me/Aachenkind', url='https://t.me/Aachenkind', messages=None)",
@@ -464,4 +465,5 @@
     "TelegramChannel(city='Германия', name='https://t.me/Deutschland_UA', url='https://t.me/Deutschland_UA', messages=None)",
     "TelegramChannel(city='Германия', name='https://t.me/+Zi2SKHvYV7w0ZWRi', url='https://t.me/+Zi2SKHvYV7w0ZWRi', messages=None)",
     "TelegramChannel(city='Германия', name='https://t.me/vk_keln', url='https://t.me/vk_keln', messages=None)"
-]
+    ]
+}

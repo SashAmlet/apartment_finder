@@ -14,7 +14,7 @@ async def main():
     """
     # 1. Загружаем конфигурацию пайплайна
     try:
-        with open('config.json', 'r', encoding='utf-8') as f:
+        with open('config-web.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
     except FileNotFoundError:
         print("[ERROR] config.json not found! Please create a configuration file.")
@@ -29,7 +29,7 @@ async def main():
     # 3. Загружаем начальные данные для пайплайна.
     # В нашем случае, это список каналов из предыдущего этапа.
     try:
-        initial_data = await load_channels("data/FilterService/2025-09-29_11-13-50.json")
+        initial_data = await load_channels("data/ParserService/2025-09-28_23-18-50.json")# load_channels("data/FilterService/2025-09-29_11-13-50.json")
     except FileNotFoundError:
         print("[WARN] Initial data file not found. Starting with an empty container.")
         initial_data = Container(channels=[], messages=[])
@@ -41,3 +41,8 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
+# 1. Нарисовать sequence диаграммку.
+# ++ 2. Модифицировать WebFilterService так, чтобы он лучше распознавал какие каналы принадлежат Баварии (сделать расширяемым на другие земли).
+# 3. Рефакторинг всего логирования в проекте (централизованное логирование, запись в файл).
+# 4. Всеобьемлемое тестирование TgFilterService - насколько хорошо классифицирует модель? Обучить другие модели и сравнить.
+# 5. Добавить отслеживание каналов в реальном времени.

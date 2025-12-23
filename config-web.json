@@ -1,0 +1,16 @@
+{
+  "run_config": {
+    "source_session_id": "latest"
+  },
+  "pipeline": [
+    {
+      "service": "WebFilterService",
+      "use_cache": false,
+      "params": {
+        "model": "gemini-2.5-flash-lite",
+        "strategy": "hybrid", 
+        "target_region_set": ["Bayern", "Bavaria", "Bavarian", "Бавария", "Баварский", "Баварцы", "Баварцев"]
+      }
+    }
+  ]
+}
