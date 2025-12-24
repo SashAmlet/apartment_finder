@@ -34,7 +34,8 @@ async def load_channels(input_file: str) -> Container:
         raw = await f.read()
     data = json.loads(raw)
 
-    # eval преобразует строки "TelegramChannel(...)" обратно в объекты
-    channels = [eval(item) for item in data["channels"]]
+    raw_channels = data.get("channels", [])
+
+    channels = [TelegramChannel.from_dict(item) for item in raw_channels]
 
     return Container(channels=channels)

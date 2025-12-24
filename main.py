@@ -14,7 +14,7 @@ async def main():
     """
     # 1. Загружаем конфигурацию пайплайна
     try:
-        with open('config-web.json', 'r', encoding='utf-8') as f:
+        with open('config-tg-parser.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
     except FileNotFoundError:
         print("[ERROR] config.json not found! Please create a configuration file.")
@@ -29,7 +29,7 @@ async def main():
     # 3. Загружаем начальные данные для пайплайна.
     # В нашем случае, это список каналов из предыдущего этапа.
     try:
-        initial_data = await load_channels("data/ParserService/2025-09-28_23-18-50.json")# load_channels("data/FilterService/2025-09-29_11-13-50.json")
+        initial_data = await load_channels("data/SessionResults/2025-12-23_23-45-59/WebFilterService_snapshot.json") # load_channels("data/ParserService/2025-09-28_23-18-50.json") # 
     except FileNotFoundError:
         print("[WARN] Initial data file not found. Starting with an empty container.")
         initial_data = Container(channels=[], messages=[])
