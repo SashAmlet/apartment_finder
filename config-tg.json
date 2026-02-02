@@ -5,7 +5,7 @@
   "pipeline": [
     {
       "service": "TgParserService",
-      "use_cache": false,
+      "use_cache": true,
       "params": {
         "search_period_days": 7
       }
