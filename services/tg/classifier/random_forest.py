@@ -1,7 +1,7 @@
 import asyncio
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 import joblib
 from datetime import datetime
 
@@ -19,21 +19,30 @@ class RandomForestMessageClassifier(Classifier):
             class_weight="balanced"
         )
 
-    async def train(self, messages: List[TelegramMessage], labels: List[int]) -> None:
+    async def train(self, messages: Union[List[TelegramMessage], np.ndarray], labels: List[int], to_vectorize: bool = True) -> None:
         """Асинхронное обучение модели"""
-        X = await self._vectorize(messages)
+        if to_vectorize:
+            X = await self._vectorize(messages)
+        else:
+            X = messages
         y = np.array(labels)
         await asyncio.to_thread(self.model.fit, X, y)
 
-    async def predict(self, messages: List[TelegramMessage]) -> List[int]:
+    async def predict(self, messages: Union[List[TelegramMessage], np.ndarray], to_vectorize: bool = True) -> List[int]:
         """Асинхронное предсказание"""
-        X = await self._vectorize(messages)
+        if to_vectorize:
+            X = await self._vectorize(messages)
+        else:
+            X = messages
         preds = await asyncio.to_thread(self.model.predict, X)
         return preds.tolist()
 
-    async def predict_with_confidence(self, messages: List[TelegramMessage]) -> List[Dict[str, Any]]:
+    async def predict_with_confidence(self, messages: Union[List[TelegramMessage], np.ndarray], to_vectorize: bool = True) -> List[Dict[str, Any]]:
         """Асинхронное предсказание с уверенностью"""
-        X = await self._vectorize(messages)
+        if to_vectorize:
+            X = await self._vectorize(messages)
+        else:
+            X = messages
         probs = await asyncio.to_thread(self.model.predict_proba, X)
 
         results = []

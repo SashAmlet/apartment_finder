@@ -17,3 +17,4 @@ __pycache__
 *.session-journal
 
 _local_/
+data/logs/
