@@ -102,7 +102,7 @@ class ClassifyTester:
 
         if not output_path:
             now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            output_path = f"data\\logs\\misclassified_{now}.json"
+            output_path = os.path.join("data", "logs", f"misclassified_{now}.json")
 
         # ensure directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -250,7 +250,9 @@ if __name__ == "__main__":
         tester = ClassifyTester() #ClassifyTester(service)
         
         # await tester.get_test_sample(50000)
-        await tester.train_balance_test_model("data\\training-ds\\dataset_balanced_2025-10-07_23-09-01.json", save_misclassified=True, train_model=False, model_path="models\\RF_model_2026-02-04_23-59-46.joblib")
+        dataset_path = os.path.join("data", "training-ds", "dataset_balanced_2025-10-07_23-09-01.json")
+        model_path = os.path.join("models", "RF_model_2026-02-04_23-59-46.joblib")
+        await tester.train_balance_test_model(dataset_path, save_misclassified=True, train_model=False, model_path=model_path)
         # await tester.test_all_filter_service("data\\training-ds\\dataset_balanced_2025-10-07_23-09-01.json")
 
     asyncio.run(main())
