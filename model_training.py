@@ -153,6 +153,8 @@ class ClassifyTester:
         random_state: int = 42,
         save_misclassified: bool = False,
         misclassified_output: Optional[str] = None,
+        train_model: bool = True,
+        model_path: Optional[str] = None,
     ):
         """
         Test RandomForestMessageClassifier.
@@ -173,18 +175,24 @@ class ClassifyTester:
 
         print(f"Dataset: {len(X_train)} train, {len(X_test)} test samples")
 
-        # Balance training data
+        # Prepare classifier: either train or load existing
         clf = RandomForestMessageClassifier()
 
-        X_train_vector = await clf._vectorize(X_train)
-        
-        X_train, y_train = self.apply_balancing(
-            X_train_vector, y_train, strategy=BalancingStrategy.HYBRID, over_strategy=0.6, under_strategy=0.8)
-        
+        if train_model:
+            # Vectorize training messages, then apply balancing only to train vectors
+            X_train_vector = await clf._vectorize(X_train)
+            X_train, y_train = self.apply_balancing(
+                X_train_vector, y_train, strategy=BalancingStrategy.HYBRID, over_strategy=0.6, under_strategy=0.8
+            )
 
-        print("Training model...")
-        await clf.train(X_train, y_train, to_vectorize=False)
-        # await clf.save()
+            print("Training model...")
+            await clf.train(X_train, y_train, to_vectorize=False)
+            await clf.save()
+        else:
+            # Use existing model for testing
+            if not model_path:
+                raise ValueError("train_model is False but no model_path was provided to load the model.")
+            await clf.load(model_path)
 
         def evaluate(y_true, y_pred, title: str):
             acc = accuracy_score(y_true, y_pred)
@@ -242,7 +250,7 @@ if __name__ == "__main__":
         tester = ClassifyTester() #ClassifyTester(service)
         
         # await tester.get_test_sample(50000)
-        await tester.train_balance_test_model("data\\training-ds\\dataset_balanced_2025-10-07_23-09-01.json", save_misclassified=True)
+        await tester.train_balance_test_model("data\\training-ds\\dataset_balanced_2025-10-07_23-09-01.json", save_misclassified=True, train_model=False, model_path="models\\RF_model_2026-02-04_23-59-46.joblib")
         # await tester.test_all_filter_service("data\\training-ds\\dataset_balanced_2025-10-07_23-09-01.json")
 
     asyncio.run(main())
