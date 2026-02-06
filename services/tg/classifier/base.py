@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 import numpy as np
 import asyncio
-import ollama
 import torch
 from sentence_transformers import SentenceTransformer
 
@@ -13,54 +12,42 @@ class Classifier(ABC):
     def __init__(self):
         self.extractor = FeatureExtractor()
 
-    
     def _features_vectorize_impl(self, messages, extractor: FeatureExtractor) -> np.ndarray:
         """Helper: extract numeric features for a list of messages using extractor."""
         return np.array([list(extractor.extract(msg).values()) for msg in messages])
-
-
-    def _ollama_embed_impl(self, texts: list[str], model: str) -> np.ndarray:
-        """Helper: call ollama.embed and normalize response to numpy array."""
-        if ollama is None:
-            raise RuntimeError("ollama client is not installed or failed to import")
-
-        resp = ollama.embed(model=model, input=texts)
-        if hasattr(resp, "embeddings"):
-            return np.array(resp.embeddings)
-        if isinstance(resp, list):
-            if resp and hasattr(resp[0], "embeddings"):
-                return np.array([r.embeddings for r in resp])
-            return np.array(resp)
-        if isinstance(resp, dict) and "embeddings" in resp:
-            return np.array(resp["embeddings"])
-        raise RuntimeError("Unexpected response format from ollama.embed")
     
     def _gpu_vectorize_sync(self, texts: list[str]) -> np.ndarray:
-        """Синхронная часть, которая выполняется на GPU"""
-        print("⏳ Загрузка модели в видеопамять...")
-        
-        # Проверка доступности GPU
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        print(f"🚀 Используем устройство: {device.upper()}")
-        if device == 'cpu':
-            print("⚠️ ВНИМАНИЕ: GPU не обнаружен! Будет медленно.")
+        """Synchronous GPU/CPU encoding using a SentenceTransformer model.
 
-        # Загружаем модель (она сама скачается при первом запуске)
+        This method runs on the calling thread (it is intended to be executed
+        inside a thread-pool executor). It loads a BGE model and returns a
+        matrix of normalized embeddings.
+        """
+
+        print("Loading model to device memory...")
+
+        # choose device
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"Using device: {device.upper()}")
+        if device == 'cpu':
+            print("Warning: GPU not detected — encoding will be slower on CPU.")
+
+        # Load the model (will be downloaded on first use)
         model = SentenceTransformer('BAAI/bge-m3', device=device)
-        
-        print(f"🔄 Начало векторизации {len(texts)} сообщений...")
-        
-        # batch_size=32 или 64 идеально для RTX 3050 (4GB VRAM)
+
+        print(f"Starting encoding of {len(texts)} messages...")
+
+        # Typical batch_size values: 32 or 64 depending on GPU memory
         embeddings = model.encode(
-            texts, 
-            batch_size=32, 
-            show_progress_bar=True, 
+            texts,
+            batch_size=32,
+            show_progress_bar=True,
             convert_to_numpy=True,
-            normalize_embeddings=True # Важно для bge-m3
+            normalize_embeddings=True,
         )
         return embeddings
 
-    async def _vectorize(self, messages: List[TelegramMessage], method: str = "gpu", **kwargs) -> np.ndarray:
+    async def _vectorize(self, messages: List[TelegramMessage], method: str = "bge-m3", **kwargs) -> np.ndarray:
         """Asynchronous vectorization of messages.
 
         Parameters
@@ -68,9 +55,10 @@ class Classifier(ABC):
         messages : list[TelegramMessage]
             Messages to vectorize.
         method : str
-            One of:
-              - "features" (default) : use local FeatureExtractor -> numeric features
-              - "ollama" : use Ollama embeddings; accepts `model` kwarg
+            Vectorization backend to use. Supported values:
+              - "features": use local FeatureExtractor -> numeric features
+              - "bge-m3": use a local SentenceTransformer BGE model (default)
+              - "ollama": use Ollama embeddings (if configured)
         kwargs : dict
             Additional backend-specific options. For `ollama`, pass `model`.
         """
@@ -78,14 +66,8 @@ class Classifier(ABC):
 
         if method == "features":
             return await loop.run_in_executor(None, self._features_vectorize_impl, messages, self.extractor)
-
-        if method == "ollama":
-            model = kwargs.get("model", "bge-m3")
-            texts = [m.text if hasattr(m, "text") else str(m) for m in messages]
-            # run embedding in thread
-            return await asyncio.to_thread(self._ollama_embed_impl, texts, model)
         
-        if method == "gpu":
+        if method == "bge-m3":
             texts = [m.text if hasattr(m, "text") else str(m) for m in messages]
             return await loop.run_in_executor(None, self._gpu_vectorize_sync, texts)
 
@@ -105,10 +87,14 @@ class Classifier(ABC):
         
     @abstractmethod
     def save(self, path: str = None) -> None:
-        """Сохраняет модель на диск"""
+        """Save the model to disk (synchronously/abstract API).
+
+        Implementations should persist the trained model to `path` or a
+        reasonable default location.
+        """
         pass
 
     @abstractmethod
     def load(self, path: str) -> None:
-        """Загружает модель с диска"""
+        """Load the model from disk (synchronously/abstract API)."""
         pass

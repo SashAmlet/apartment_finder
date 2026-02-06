@@ -20,7 +20,7 @@ class RandomForestMessageClassifier(Classifier):
         )
 
     async def train(self, messages: Union[List[TelegramMessage], np.ndarray], labels: List[int], to_vectorize: bool = True) -> None:
-        """Асинхронное обучение модели"""
+        """Asynchronous model training."""
         if to_vectorize:
             X = await self._vectorize(messages)
         else:
@@ -29,7 +29,7 @@ class RandomForestMessageClassifier(Classifier):
         await asyncio.to_thread(self.model.fit, X, y)
 
     async def predict(self, messages: Union[List[TelegramMessage], np.ndarray], to_vectorize: bool = True) -> List[int]:
-        """Асинхронное предсказание"""
+        """Asynchronous prediction returning class labels."""
         if to_vectorize:
             X = await self._vectorize(messages)
         else:
@@ -38,7 +38,7 @@ class RandomForestMessageClassifier(Classifier):
         return preds.tolist()
 
     async def predict_with_confidence(self, messages: Union[List[TelegramMessage], np.ndarray], to_vectorize: bool = True) -> List[Dict[str, Any]]:
-        """Асинхронное предсказание с уверенностью"""
+        """Asynchronous prediction with confidence scores for each sample."""
         if to_vectorize:
             X = await self._vectorize(messages)
         else:
@@ -56,7 +56,10 @@ class RandomForestMessageClassifier(Classifier):
         return results
 
     async def save(self, path: str = None) -> None:
-        """Асинхронное сохранение модели"""
+        """Asynchronously save the trained model to a joblib file.
+
+        If no path is provided, a timestamped file is created under `models/`.
+        """
         if path is None:
             now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             path = f".\\models\\RF_model_{now}.joblib"
@@ -64,8 +67,12 @@ class RandomForestMessageClassifier(Classifier):
         await asyncio.to_thread(joblib.dump, self.model, path)
 
     async def load(self, path: str) -> None:
-        """Асинхронная загрузка модели"""
+        """Asynchronously load a model from a joblib file.
+
+        Raises a RuntimeError if the loaded object does not look like a trained
+        scikit-learn RandomForest model.
+        """
         model = await asyncio.to_thread(joblib.load, path)
         if not hasattr(model, "estimators_"):
-            raise RuntimeError("Загруженная модель не обучена или файл повреждён.")
+            raise RuntimeError("Loaded model appears untrained or the file is corrupted.")
         self.model = model

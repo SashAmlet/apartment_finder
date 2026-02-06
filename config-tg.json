@@ -14,7 +14,7 @@
       "service": "TgFilterService",
       "use_cache": false,
       "params": {
-        "ml_model_path": "models/RF_model_2025-10-07_23-15-48.joblib"
+        "ml_model_path": "models/model_v1.joblib"
       }
     },
     {

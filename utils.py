@@ -29,7 +29,11 @@ def get_prompt_by_id(promt_path: str, prompt_id: str) -> Tuple[str, str]:
 
 
 async def load_channels(input_file: str) -> Container:
-    """Загружает список каналов из JSON-файла (где объекты сериализованы строками)."""
+    """Load a list of channels from a JSON file.
+
+    The JSON may contain serialized channel objects. This function reads the
+    file asynchronously and returns a Container of TelegramChannel objects.
+    """
     async with aiofiles.open(input_file, "r", encoding="utf-8") as f:
         raw = await f.read()
     data = json.loads(raw)
