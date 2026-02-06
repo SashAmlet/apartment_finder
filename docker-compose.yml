@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      target: cpu
+    container_name: apartment_finder_cpu
+    env_file: .env
+    depends_on:
+      - redis
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./sessions:/app/sessions
+    command: ["python", "main.py"]
+    restart: unless-stopped
+
+  app-gpu:
+    build:
+      context: .
+      target: gpu
+    container_name: apartment_finder_gpu
+    env_file: .env
+    depends_on:
+      - redis
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./sessions:/app/sessions
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: ["python", "main.py"]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: apartment_finder_redis
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command: >
+      sh -c "if [ -n '${REDIS_PASSWORD}' ]; then 
+               exec redis-server --requirepass '${REDIS_PASSWORD}' --save 60 1 --appendonly yes; 
+             else 
+               exec redis-server --save 60 1 --appendonly yes; 
+             fi"
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  redis_data:
