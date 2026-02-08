@@ -1,0 +1,31 @@
+{
+  "run_config": {
+    "source_session_id": "latest"
+  },
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "db": 0,
+    "queue_name": "telegram_messages"
+  },
+  "batch_processing": {
+    "max_messages": 64,
+    "max_wait_minutes": 5
+  },
+  "pipeline": [
+    {
+      "service": "TgFilterService",
+      "use_cache": false,
+      "params": {
+        "ml_model_path": "models/model_v1.joblib"
+      }
+    },
+    {
+       "service": "TgPublisherService",
+       "use_cache": false,
+       "params": {
+         "channel_username": "@find_home_bayern"
+       }
+    }
+  ]
+}
