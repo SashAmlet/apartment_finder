@@ -14,7 +14,7 @@ async def main():
     """
     # 1. Загружаем конфигурацию пайплайна
     try:
-        with open('config-tg-parser.json', 'r', encoding='utf-8') as f:
+        with open('data/configs/config-tg.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
     except FileNotFoundError:
         print("[ERROR] config.json not found! Please create a configuration file.")

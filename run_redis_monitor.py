@@ -17,7 +17,7 @@ async def main():
     """
     # Load config
     try:
-        with open('data\\configs\\config-monitor-redis.json', 'r', encoding='utf-8') as f:
+        with open('data/configs/config-monitor-redis.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
     except FileNotFoundError:
         print("[ERROR] config-monitor-redis.json not found! Please create a configuration file.")

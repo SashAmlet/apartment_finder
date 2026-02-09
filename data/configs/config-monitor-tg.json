@@ -6,7 +6,7 @@
       "use_cache": false,
       "params": {
         "session_name": "tg_monitor_session",
-        "redis_host": "localhost",
+        "redis_host": "redis",
         "redis_port": 6379,
         "redis_queue": "telegram_messages"
       }

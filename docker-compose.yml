@@ -1,43 +1,7 @@
 version: '3.8'
 
 services:
-  app:
-    build:
-      context: .
-      target: cpu
-    container_name: apartment_finder_cpu
-    env_file: .env
-    depends_on:
-      - redis
-    volumes:
-      - ./data:/app/data
-      - ./models:/app/models
-      - ./sessions:/app/sessions
-    command: ["python", "main.py"]
-    restart: unless-stopped
-
-  app-gpu:
-    build:
-      context: .
-      target: gpu
-    container_name: apartment_finder_gpu
-    env_file: .env
-    depends_on:
-      - redis
-    volumes:
-      - ./data:/app/data
-      - ./models:/app/models
-      - ./sessions:/app/sessions
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    command: ["python", "main.py"]
-    restart: unless-stopped
-
+  # Redis - must start first
   redis:
     image: redis:7-alpine
     container_name: apartment_finder_redis
@@ -54,6 +18,94 @@ services:
       - redis_data:/data
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Telegram Monitor - watches Telegram channels and sends to Redis
+  tg-monitor:
+    build:
+      context: .
+      target: cpu
+    container_name: apartment_finder_tg_monitor
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./sessions:/app/sessions
+      - ./monitor_config.json:/app/monitor_config.json
+    command: ["python", "run_tg_monitor.py"]
+    restart: unless-stopped
+
+  # Redis Batch Processor - processes batches from Redis queue
+  batch-processor:
+    build:
+      context: .
+      target: cpu
+    container_name: apartment_finder_batch_processor
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./sessions:/app/sessions
+      - ./config.json:/app/config.json
+    command: ["python", "run_redis_monitor.py"]
+    restart: unless-stopped
+
+  # GPU variant for batch processor (optional)
+  batch-processor-gpu:
+    build:
+      context: .
+      target: gpu
+    container_name: apartment_finder_batch_processor_gpu
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./sessions:/app/sessions
+      - ./config.json:/app/config.json
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: ["python", "run_redis_monitor.py"]
+    restart: unless-stopped
+    profiles:
+      - gpu  # Only start with: docker-compose --profile gpu up
+
+  # Main app (original pipeline runner) - optional, for manual runs
+  app:
+    build:
+      context: .
+      target: cpu
+    container_name: apartment_finder_app
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./sessions:/app/sessions
+      - ./config.json:/app/config.json
+    command: ["python", "main.py"]
+    restart: "no"  # Don't auto-restart, only run manually
+    profiles:
+      - manual  # Only start with: docker-compose --profile manual up app
 
 volumes:
   redis_data:

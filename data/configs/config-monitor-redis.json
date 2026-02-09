@@ -3,8 +3,9 @@
     "source_session_id": "latest"
   },
   "redis": {
-    "host": "localhost",
+    "host": "redis",
     "port": 6379,
+    "db": 0,
     "queue_name": "telegram_messages"
   },
   "batch_processing": {

@@ -34,7 +34,25 @@ class TgParserService(Service):
 
     async def __aenter__(self):
         await self.client.connect()
-        print("[INFO] Telegram client connected.")
+        
+        # Check if already authorized
+        if not await self.client.is_user_authorized():
+            print("[INFO] Not authorized. Starting authentication...")
+            
+            # Start the authorization process
+            await self.client.start()
+            
+            # If 2FA is enabled, provide password
+            if self.password:
+                try:
+                    await self.client.sign_in(password=self.password)
+                    print("[INFO] 2FA authentication successful.")
+                except Exception as e:
+                    print(f"[WARN] 2FA not needed or already authenticated: {e}")
+        else:
+            print("[INFO] Already authorized.")
+
+        print("[INFO] Telegram client connected and authenticated.")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -98,7 +116,7 @@ class TgParserService(Service):
                 async for msg in self.client.iter_messages(entity, offset_date=cutoff_date, reverse=True):
                     if msg.text:
                         text = msg.text.lower()
-                        if any(word in text for word in KEYWORDS):
+                        if 1:#any(word in text for word in KEYWORDS):
                             sender = await msg.get_sender()  # Получаем объект User
                             
                             sender_str = (
