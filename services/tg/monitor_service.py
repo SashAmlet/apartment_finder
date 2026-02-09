@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import List, Optional, Set
+from typing import List, Optional
 
 from telethon import TelegramClient, events
 from telethon.tl.functions.channels import JoinChannelRequest
@@ -11,7 +11,7 @@ from telethon.errors.rpcerrorlist import (
     UsernameNotOccupiedError, 
     FloodWaitError
 )
-import redis.asyncio as redis
+from redis import asyncio as aioredis
 
 from services.base import Service
 from models import Container, TelegramChannel
@@ -44,7 +44,7 @@ class TgMonitorService(Service):
         self.redis_port = redis_port
         self.redis_db = redis_db
         self.redis_queue = redis_queue
-        self.redis_client: Optional[redis.Redis] = None
+        self.redis_client: Optional[aioredis.Redis] = None
 
     async def __aenter__(self):
         await self.client.connect()
@@ -70,7 +70,7 @@ class TgMonitorService(Service):
 
         # Initialize Redis connection if enabled
         if self.use_redis:
-            self.redis_client = redis.Redis(
+            self.redis_client = aioredis.Redis(
                 host=self.redis_host,
                 port=self.redis_port,
                 db=self.redis_db,

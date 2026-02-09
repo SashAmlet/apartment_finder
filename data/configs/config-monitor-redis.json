@@ -5,12 +5,11 @@
   "redis": {
     "host": "localhost",
     "port": 6379,
-    "db": 0,
     "queue_name": "telegram_messages"
   },
   "batch_processing": {
     "max_messages": 64,
-    "max_wait_minutes": 5
+    "max_wait_minutes":10
   },
   "pipeline": [
     {

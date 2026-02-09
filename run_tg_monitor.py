@@ -19,7 +19,7 @@ async def main():
     
     # Load channels from snapshot
     try:
-        snapshot_path = config.get('channels_snapshot_path', '_local_/tests/WebFilterService_snapshot.json')
+        snapshot_path = config.get('channels_snapshot_path', 'data/SessionResults/2025-12-23_23-45-59/WebFilterService_snapshot.json')
         initial_data = await load_channels(snapshot_path)
     except FileNotFoundError as e:
         print(f"[WARN] {e}")

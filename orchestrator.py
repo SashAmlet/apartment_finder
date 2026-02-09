@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 import json
-import redis
+from redis import asyncio as aioredis
 import copy
 from typing import Dict, List, Optional
 
@@ -27,7 +27,7 @@ class Orchestrator:
         self.redis_config = config.get('redis', {})
         self.batch_config = config.get('batch_processing', {})
         
-        self.redis_client: Optional[redis.Redis] = None
+        self.redis_client: Optional[aioredis.Redis] = None
         self._stop_monitoring = asyncio.Event()
         self.session_manager = session_manager
         self.service_factory = ServiceFactory()
@@ -87,12 +87,12 @@ class Orchestrator:
         print("\n[INFO] Pipeline finished successfully.")
         print(f"[INFO] All artifacts for this run are saved in: {self.session_manager.session_path}")
 
-    async def _get_redis_client(self) -> redis.Redis:
+    async def _get_redis_client(self) -> aioredis.Redis:
         """
         Создает или возвращает существующее подключение к Redis.
         """
         if self.redis_client is None:
-            self.redis_client = redis.Redis(
+            self.redis_client = aioredis.Redis(
                 host=self.redis_config['host'],
                 port=self.redis_config['port'],
                 db=self.redis_config['db'],
@@ -110,7 +110,7 @@ class Orchestrator:
             self.redis_client = None
             print("[INFO] Redis connection closed.")
 
-    async def _collect_messages_from_redis(self, redis_client: redis.Redis, count: int) -> List[Dict]:
+    async def _collect_messages_from_redis(self, redis_client: aioredis.Redis, count: int) -> List[Dict]:
         """
         Извлекает count сообщений из Redis очереди.
         """
