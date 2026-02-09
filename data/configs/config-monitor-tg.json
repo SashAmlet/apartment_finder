@@ -1,18 +1,14 @@
 {
-  "channels_snapshot_path": "data/SessionResults/2025-12-23_23-45-59/TgParserService_snapshot.json",
+  "channels_snapshot_path": "_local_/tests/WebFilterService_snapshot.json",
   "pipeline": [
     {   
-      "service": {
-        "name": "TgMonitorService",
-        "use_cache": false,
-        "params": {
-          "session_name": "tg_monitor_session",
-          "redis_host": "localhost",
-          "redis_port": 6379,
-          "redis_db": 0,
-          "redis_queue": "telegram_messages",
-          "use_redis": true
-        }
+      "service": "TgMonitorService",
+      "use_cache": false,
+      "params": {
+        "session_name": "tg_monitor_session",
+        "redis_host": "localhost",
+        "redis_port": 6379,
+        "redis_queue": "telegram_messages"
       }
     }
   ]

@@ -36,7 +36,7 @@ class TgMonitorService(Service):
 
         self.client = TelegramClient(session_name, api_id, api_hash)
         self.password = password
-        self.monitored_channels: Set[int] = set()  # Track channel IDs we're monitoring
+        self.monitored_channels: dict = {}  # Track channel IDs we're monitoring
         self._stop_event = asyncio.Event()
 
         self.use_redis = use_redis
@@ -65,8 +65,19 @@ class TgMonitorService(Service):
                     print(f"[WARN] 2FA not needed or already authenticated: {e}")
         else:
             print("[INFO] Already authorized.")
-        
+
         print("[INFO] Telegram client connected and authenticated.")
+
+        # Initialize Redis connection if enabled
+        if self.use_redis:
+            self.redis_client = redis.Redis(
+                host=self.redis_host,
+                port=self.redis_port,
+                db=self.redis_db,
+                decode_responses=True
+            )
+            print(f"[INFO] Connected to Redis at {self.redis_host}:{self.redis_port}")
+        
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -150,7 +161,7 @@ class TgMonitorService(Service):
             channel_name = getattr(chat, 'title', 'Unknown Channel')
             
             # Get metadata from our stored info
-            channel_metadata = self.channel_info.get(channel_id, {})
+            channel_metadata = self.monitored_channels.get(channel_id, {})
             city = channel_metadata.get('city', 'Unknown')
             channel_url = channel_metadata.get('url', 'Unknown')
             
@@ -198,7 +209,11 @@ class TgMonitorService(Service):
             try:
                 await self._join_channel(channel.url)
                 entity = await self.client.get_entity(channel.url)
-                self.monitored_channels.add(entity.id)
+                self.monitored_channels[entity.id] = {
+                    'city': channel.city,
+                    'name': channel.name,
+                    'url': channel.url
+                }
                 print(f"[INFO] Added {channel.name} ({channel.city}) to monitoring list.")
             except Exception as e:
                 print(f"[ERROR] Could not add {channel.url} to monitoring: {e}")

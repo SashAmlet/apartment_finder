@@ -3,6 +3,7 @@ from typing import Dict, Any, Callable, Awaitable
 from dotenv import load_dotenv
 
 from services.base import Service
+from services.tg.monitor_service import TgMonitorService
 from services.tg.parser_service import TgParserService
 from services.tg.filter_service import TgFilterService
 from services.tg.publisher_service import TgPublisherService
@@ -28,6 +29,7 @@ class ServiceFactory:
         # Карта, сопоставляющая имя сервиса с асинхронным методом, который его создает
         self._builders: Dict[str, Callable[[Dict[str, Any]], Awaitable[Service]]] = {
             "TgParserService": self._build_tg_parser_service,
+            "TgMonitorService": self._build_tg_monitor_service,
             "TgFilterService": self._build_tg_filter_service,
             "TgPublisherService": self._build_publisher_service,
             "WebFilterService": self._build_web_filter_service,
@@ -76,6 +78,30 @@ class ServiceFactory:
             init_args['session_name'] = params['session_name']
         
         return TgParserService(**init_args)
+    
+    async def _build_tg_monitor_service(self, params: Dict[str, Any]) -> Service:
+        """Строитель для TgMonitorService."""
+        init_args = {
+            'api_id': int(os.getenv("TG_API_ID")),
+            'api_hash': os.getenv("TG_API_HASH"),
+            'password': os.getenv("TG_PASSWORD")
+        }
+
+        # Параметры из конфига передаются, если они есть
+        if 'session_name' in params:
+            init_args['session_name'] = params['session_name']
+        if 'redis_host' in params:
+            init_args['redis_host'] = params['redis_host']
+        if 'redis_port' in params:
+            init_args['redis_port'] = params['redis_port']
+        if 'redis_queue' in params:
+            init_args['redis_queue'] = params['redis_queue']
+        if 'redis_db' in params:
+            init_args['redis_db'] = params['redis_db']
+        if 'use_redis' in params:
+            init_args['use_redis'] = params['use_redis']
+        
+        return TgMonitorService(**init_args)
 
     async def _build_tg_filter_service(self, params: Dict[str, Any]) -> Service:
         """
