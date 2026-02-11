@@ -9,7 +9,7 @@ from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 
 from services.base import Service
 from models import Container, TelegramChannel
-from utils import get_prompt_by_id
+from utils.utils import get_prompt_by_id
 
 class WebFilterService(Service):
     def __init__(self, api_key: str, model: str = "gemini-2.5-flash-lite", strategy: str = "geo", target_region_set: set = {"Bayern"}):

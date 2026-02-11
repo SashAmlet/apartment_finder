@@ -1,5 +1,4 @@
 import os
-import sys
 import asyncio
 import json
 from dotenv import load_dotenv
@@ -21,7 +20,7 @@ from imblearn.pipeline import Pipeline
 from collections import Counter
 
 from models import TelegramMessage
-from utils import load_channels
+from utils.utils import load_channels
 from services.tg.filter_service import TgFilterService
 from services.tg.classifier.random_forest import RandomForestMessageClassifier
 

@@ -8,7 +8,7 @@
       "use_cache": false,
       "params": {
         "search_period_days": 14,
-        "session_name": "tg_parser_session"
+        "session_name": "new_user_session"
       }
     },
     {

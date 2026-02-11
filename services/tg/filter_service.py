@@ -7,7 +7,7 @@ from typing import List, Tuple
 from google import genai
 
 from models import Container, TelegramChannel, TelegramMessage
-from utils import get_prompt_by_id
+from utils.utils import get_prompt_by_id
 
 from services.base import Service
 from services.tg.classifier.base import Classifier

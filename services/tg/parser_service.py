@@ -7,7 +7,7 @@ from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.errors.rpcerrorlist import UserAlreadyParticipantError, InviteHashExpiredError, UsernameNotOccupiedError, FloodWaitError
 
-from services.base import Service
+from services.tg.base import TelegramServiceBase
 from models import Container, TelegramChannel, TelegramMessage
 
 
@@ -24,82 +24,11 @@ KEYWORDS = [
 
 MAX_JOIN_ATTEMPTS = 3
 
-class TgParserService(Service):
+class TgParserService(TelegramServiceBase):
     def __init__(self, api_id: int, api_hash: str, password: str, search_period_days: int, session_name: str = "anon-usr-vasa"):
-        super().__init__()
+        super().__init__(api_id, api_hash, password, session_name)
 
-        self.client = TelegramClient(session_name, api_id, api_hash)
-        self.password = password
         self.search_period = timedelta(days=search_period_days)
-
-    async def __aenter__(self):
-        await self.client.connect()
-        
-        # Check if already authorized
-        if not await self.client.is_user_authorized():
-            print("[INFO] Not authorized. Starting authentication...")
-            
-            # Start the authorization process
-            await self.client.start()
-            
-            # If 2FA is enabled, provide password
-            if self.password:
-                try:
-                    await self.client.sign_in(password=self.password)
-                    print("[INFO] 2FA authentication successful.")
-                except Exception as e:
-                    print(f"[WARN] 2FA not needed or already authenticated: {e}")
-        else:
-            print("[INFO] Already authorized.")
-
-        print("[INFO] Telegram client connected and authenticated.")
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.client.is_connected():
-            await self.client.disconnect()
-            print("[INFO] Telegram client disconnected.")
-
-    async def _join_channel(self, url: str):
-        """
-        Попытка вступить в канал/группу.
-        """
-        for attempt in range(MAX_JOIN_ATTEMPTS):
-            try:
-                if "/+" in url or "joinchat" in url:
-                    # приватный инвайт
-                    invite_hash = url.split("/")[-1].replace("+", "")
-                    await self.client(ImportChatInviteRequest(invite_hash))
-                else:
-                    # публичный канал
-                    username = url.split("/")[-1]
-                    await self.client(JoinChannelRequest(username))
-
-                print(f"[INFO] Successfully joined {url}.")
-                return
-
-            except UserAlreadyParticipantError:
-                # ЭТО НЕ ОШИБКА! Это ожидаемое поведение. Логируем как INFO.
-                # print(f"[INFO] Already a member of {url}. Skipping join.")
-                return
-            
-            except (InviteHashExpiredError, UsernameNotOccupiedError) as e:
-                # Это реальные проблемы с каналом, которые стоит отметить.
-                print(f"[WARN] Could not join {url}: {e.__class__.__name__}:\n{e}")
-                return
-
-            except FloodWaitError as e:
-                # Telegram просит подождать.
-                wait_time = e.seconds + 1 # +1 секунда на всякий случай
-                print(f"[WARN] Flood wait of {wait_time}s required for {url} on attempt {attempt + 1}/{MAX_JOIN_ATTEMPTS}.")
-                await asyncio.sleep(wait_time)
-
-            except Exception as e:
-                # Все остальные, неожиданные ошибки.
-                print(f"[ERROR] An unexpected error occurred when trying to join {url}: {e}")
-                await asyncio.sleep(5)
-        
-        print(f"[ERROR] Failed to join {url} after {MAX_JOIN_ATTEMPTS} attempts.")
 
     async def run(self, container: Container) -> Container:
         cutoff_date = datetime.now() - self.search_period

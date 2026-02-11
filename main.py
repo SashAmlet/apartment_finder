@@ -5,7 +5,7 @@ from models import Container
 from orchestrator import Orchestrator
 from session_manager import SessionManager
 
-from utils import load_channels
+from utils.utils import load_channels
 
 async def main():
     """

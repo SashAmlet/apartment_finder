@@ -1,0 +1,40 @@
+{
+    "channels": [
+        {
+            "city": "Aschaffenburg",
+            "name": "Ашаффенбург помощь украинцам❤️🇺🇦🇩🇪",
+            "url": "https://t.me/aschafenburg",
+            "messages": []
+        },
+        {
+            "city": "Bamberg",
+            "name": "Refugees Bamberg",
+            "url": "https://t.me/refugeesbamberg",
+            "messages": []
+        },
+        {
+            "city": "Augsburg",
+            "name": "Українці Augsburg",
+            "url": "https://t.me/Ukr_Augsburg_help",
+            "messages": []
+        },
+        {
+            "city": "Schweinfuhrt",
+            "name": "Українці в Швайнфурті та регіоні",
+            "url": "https://t.me/+ZVla17acFJBiMGYy",
+            "messages": []
+        },
+        {
+            "city": "Erlangen",
+            "name": "Ukraine in Erlangen",
+            "url": "https://t.me/ukraine_erlangen",
+            "messages": []
+        },
+        {
+            "city": "Schweinfuhrt",
+            "name": "Русскоязычный Швайнфурт и округ!",
+            "url": "https://t.me/schweinfurtt",
+            "messages": []
+        }
+    ]
+}

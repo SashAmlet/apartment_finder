@@ -40,7 +40,7 @@ services:
       - ./sessions:/app/sessions
       - ./monitor_config.json:/app/monitor_config.json
     command: ["python", "run_tg_monitor.py"]
-    restart: unless-stopped
+    restart: always
 
   # Redis Batch Processor - processes batches from Redis queue
   batch-processor:
@@ -58,7 +58,7 @@ services:
       - ./sessions:/app/sessions
       - ./config.json:/app/config.json
     command: ["python", "run_redis_monitor.py"]
-    restart: unless-stopped
+    restart: always
 
   # GPU variant for batch processor (optional)
   batch-processor-gpu:
@@ -83,7 +83,7 @@ services:
               count: all
               capabilities: [gpu]
     command: ["python", "run_redis_monitor.py"]
-    restart: unless-stopped
+    restart: always
     profiles:
       - gpu  # Only start with: docker-compose --profile gpu up
 
