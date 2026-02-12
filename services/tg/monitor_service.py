@@ -2,19 +2,8 @@ import asyncio
 import json
 from typing import List, Optional
 
-from telethon import TelegramClient, events
-from telethon.tl.functions.channels import JoinChannelRequest
-from telethon.tl.functions.messages import ImportChatInviteRequest
-from telethon.errors.rpcerrorlist import (
-    UserAlreadyParticipantError, 
-    InviteHashExpiredError, 
-    UsernameNotOccupiedError, 
-    FloodWaitError
-)
-from telethon.errors import (
-    FloodError,
-    RPCError
-)
+from telethon import events
+
 from redis import asyncio as aioredis
 
 from services.tg.base import TelegramServiceBase
@@ -98,6 +87,11 @@ class TgMonitorService(TelegramServiceBase):
         Process a single message: filter by keywords, send to Redis, update offset.
         """
         if not msg.text:
+            return
+        
+        last_processed_id = self.offset_tracker.get_offset(channel_id)
+        if last_processed_id and msg.id <= last_processed_id:
+            # print(f"[INFO] Skipping duplicate message {msg.id} for channel {channel_id}")
             return
         
         try:
@@ -259,43 +253,23 @@ class TgMonitorService(TelegramServiceBase):
         print(f"[INFO] Now monitoring {len(self.monitored_channels)} channels for new messages.")
 
     async def _monitor_with_reconnect(self):
-        health_check_interval = 30
-        reconnect_cooldown = 10
-        first_iteration = True
-        
+        """
+        Main monitoring loop that handles reconnection and catch-up.
+        This will run indefinitely until stopped.
+        """        
         while not self._stop_event.is_set():
             try:
                 await self._ensure_connected()
+
+                await self._run_global_catchup()
                 
-                if first_iteration:
-                    first_iteration = False
-                    await self._run_global_catchup()
-                
-                try:
-                    await asyncio.wait_for(
-                        self._stop_event.wait(),
-                        timeout=health_check_interval
-                    )
-                    break  # Stop called
-                except asyncio.TimeoutError:
-                    # Health check
-                    await asyncio.sleep(1)
-                    if not self.client.is_connected():
-                        first_iteration = True
-                        raise ConnectionError("Connection lost")
+                print("[INFO] Connection verified. Monitoring...")
+                await self.client.run_until_disconnected()
             
             except asyncio.CancelledError:
                 break
             except (ConnectionError, OSError, TimeoutError) as e:
                 print(f"[WARN] Connection error: {e}")
-                try:
-                    if self.client.is_connected():
-                        await self.client.disconnect()
-                except:
-                    pass
-                
-                await asyncio.sleep(reconnect_cooldown)
-                first_iteration = True
 
     async def run(self, container: Container) -> None:
         """

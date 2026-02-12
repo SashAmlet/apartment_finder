@@ -1,5 +1,4 @@
 import asyncio
-from typing import Optional
 from abc import ABC
 
 from telethon import TelegramClient
@@ -12,10 +11,6 @@ from telethon.errors.rpcerrorlist import (
     FloodWaitError,
     AuthKeyUnregisteredError,
     PhoneNumberUnoccupiedError
-)
-from telethon.errors import (
-    FloodError,
-    RPCError
 )
 
 from services.base import Service
@@ -45,8 +40,9 @@ class TelegramServiceBase(Service, ABC):
             session_name, 
             api_id, 
             api_hash, 
-            auto_reconnect=False,
-            connection_retries=0
+            auto_reconnect=True,
+            connection_retries=2,
+            retry_delay=2
             )
         
         self.password = password
