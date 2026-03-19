@@ -18,3 +18,5 @@ __pycache__
 
 _local_/
 data/logs/
+data/SessionResults/
+data/monitor_offsets.json
