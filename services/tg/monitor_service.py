@@ -1,10 +1,7 @@
 import asyncio
-import json
-from typing import List, Optional
 
 from telethon import events
-
-from redis import asyncio as aioredis
+from typing import List
 
 from services.tg.base import TelegramServiceBase
 from utils.message_tracker import MessageOffsetTracker
@@ -15,16 +12,11 @@ MAX_JOIN_ATTEMPTS = 3
 
 class TgMonitorService(TelegramServiceBase):
     def __init__(
-        self, 
-        api_id: int, 
-        api_hash: str, 
-        password: str, 
+        self,
+        api_id: int,
+        api_hash: str,
+        password: str,
         session_name: str = "anon-usr-vasa-monitor",
-        redis_host: str = "localhost",
-        redis_port: int = 6379,
-        redis_db: int = 0,
-        redis_queue: str = "telegram_messages",
-        use_redis: bool = True,
         offset_storage_path: str = "data/monitor_offsets.json"
     ):
         super().__init__(api_id, api_hash, password, session_name)
@@ -32,13 +24,6 @@ class TgMonitorService(TelegramServiceBase):
         self.monitored_channels: dict = {}  # Track channel IDs we're monitoring
         self._stop_event = asyncio.Event()
 
-        self.use_redis = use_redis
-        self.redis_host = redis_host
-        self.redis_port = redis_port
-        self.redis_db = redis_db
-        self.redis_queue = redis_queue
-        self.redis_client: Optional[aioredis.Redis] = None
-        
         # Offset tracking for message persistence
         self.offset_tracker = MessageOffsetTracker(offset_storage_path)
         
@@ -47,40 +32,10 @@ class TgMonitorService(TelegramServiceBase):
 
     async def __aenter__(self):
         await super().__aenter__()
-
-        # Initialize Redis connection if enabled
-        if self.use_redis:
-            self.redis_client = aioredis.Redis(
-                host=self.redis_host,
-                port=self.redis_port,
-                db=self.redis_db,
-                decode_responses=True
-            )
-            print(f"[INFO] Connected to Redis at {self.redis_host}:{self.redis_port}")
-        
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Cleanup connections."""
-        if self.redis_client:
-            await self.redis_client.close()
-            print("[INFO] Redis connection closed.")
-        
         await super().__aexit__(exc_type, exc_val, exc_tb)
-
-    async def _send_to_redis(self, message_data: dict):
-        """
-        Send message to Redis queue.
-        """
-        if not self.redis_client:
-            return
-        
-        try:
-            message_json = json.dumps(message_data, default=str)
-            await self.redis_client.rpush(self.redis_queue, message_json)
-            print(f"[REDIS] Message sent to queue '{self.redis_queue}'")
-        except Exception as e:
-            print(f"[ERROR] Failed to send message to Redis: {e}")
 
     async def _process_message(self, msg, channel_id: int, update_offset: bool = True):
         """
@@ -133,10 +88,6 @@ class TgMonitorService(TelegramServiceBase):
             print(f"[NEW MESSAGE] Date: {msg.date}")
             print(f"[NEW MESSAGE] Text: {msg.text[:200]}...")
             print(f"{'='*60}\n")
-            
-            # Send to Redis
-            if self.use_redis:
-                await self._send_to_redis(message_data)
             
             # Update offset
             if update_offset:

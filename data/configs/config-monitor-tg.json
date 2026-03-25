@@ -1,14 +1,17 @@
 {
   "channels_snapshot_path": "data/SessionResults/2025-12-23_23-45-59/WebFilterService_snapshot.json",
+  "redis": {
+    "host": "redis",
+    "port": 6379,
+    "db": 0,
+    "queue_name": "telegram_messages"
+  },
   "pipeline": [
-    {   
+    {
       "service": "TgMonitorService",
       "use_cache": false,
       "params": {
-        "session_name": "tg_monitor_session",
-        "redis_host": "redis",
-        "redis_port": 6379,
-        "redis_queue": "telegram_messages"
+        "session_name": "tg_monitor_session"
       }
     }
   ]

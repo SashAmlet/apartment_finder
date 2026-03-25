@@ -90,16 +90,6 @@ class ServiceFactory:
         # Параметры из конфига передаются, если они есть
         if 'session_name' in params:
             init_args['session_name'] = params['session_name']
-        if 'redis_host' in params:
-            init_args['redis_host'] = params['redis_host']
-        if 'redis_port' in params:
-            init_args['redis_port'] = params['redis_port']
-        if 'redis_queue' in params:
-            init_args['redis_queue'] = params['redis_queue']
-        if 'redis_db' in params:
-            init_args['redis_db'] = params['redis_db']
-        if 'use_redis' in params:
-            init_args['use_redis'] = params['use_redis']
         
         return TgMonitorService(**init_args)
 

@@ -85,6 +85,14 @@ class Orchestrator:
             await self.session_manager.save_snapshot(service_name, copy.deepcopy(current_data))
 
         print("\n[INFO] Pipeline finished successfully.")
+
+        # Push the final container result to Redis (if configured)
+        redis_queue = self.redis_config.get('queue_name')
+        if redis_queue and isinstance(current_data, Container):
+            print(f"[INFO] Saving final Container to Redis queue '{redis_queue}'...")
+            await self._send_container_to_redis(current_data, queue_name=redis_queue)
+            print(f"[INFO] Final Container saved to Redis queue '{redis_queue}'.")
+
         print(f"[INFO] All artifacts for this run are saved in: {self.session_manager.session_path}")
 
     async def _get_redis_client(self) -> aioredis.Redis:
@@ -109,6 +117,50 @@ class Orchestrator:
             await self.redis_client.close()
             self.redis_client = None
             print("[INFO] Redis connection closed.")
+
+    async def _send_to_redis(self, payload, queue_name: Optional[str] = None):
+        """
+        Универсальный метод сохранения JSON-пейлоада в Redis очередь.
+
+        :param payload: JSON-сериализуемый объект или уже сериализованная строка.
+        :param queue_name: Название Redis очереди (явно или из конфигурации).
+        """
+        target_queue = queue_name or self.redis_config.get('queue_name')
+        if not target_queue:
+            print("[WARN] No Redis queue name configured. Skipping send.")
+            return
+
+        redis_client = await self._get_redis_client()
+        if redis_client is None:
+            print("[ERROR] Redis client not initialized. Cannot send data.")
+            return
+
+        try:
+            if isinstance(payload, str):
+                message_json = payload
+            else:
+                message_json = json.dumps(payload, default=str, ensure_ascii=False)
+
+            await redis_client.rpush(target_queue, message_json)
+            print(f"[INFO] Data pushed to Redis queue '{target_queue}'.")
+        except Exception as e:
+            print(f"[ERROR] Failed to send payload to Redis queue '{target_queue}': {e}")
+
+    async def _send_container_to_redis(self, container: Container, queue_name: Optional[str] = None):
+        """
+        Отправляет финальный Container в Redis очередь.
+        """
+        if container is None:
+            print("[WARN] Container is None, nothing to send to Redis.")
+            return
+
+        # try:
+        #     container_json = container.to_json(ensure_ascii=False)
+        # except Exception as e:
+        #     print(f"[WARN] Could not serialize Container via to_json(): {e}. Falling back to json.dumps().")
+        container_json = json.dumps(container, default=str, ensure_ascii=False)
+
+        await self._send_to_redis(container_json, queue_name=queue_name)
 
     async def _collect_messages_from_redis(self, redis_client: aioredis.Redis, count: int) -> List[Dict]:
         """
