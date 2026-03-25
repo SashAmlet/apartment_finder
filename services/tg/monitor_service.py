@@ -68,19 +68,23 @@ class TgMonitorService(TelegramServiceBase):
         
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
-    async def _send_to_redis(self, message_data: dict):
+    async def _send_to_redis(self, message_data: dict) -> bool:
         """
         Send message to Redis queue.
+        Returns True on success, False on failure.
         """
         if not self.redis_client:
-            return
+            print("[WARN] Redis client not initialized; cannot send message")
+            return False
         
         try:
             message_json = json.dumps(message_data, default=str)
             await self.redis_client.rpush(self.redis_queue, message_json)
             print(f"[REDIS] Message sent to queue '{self.redis_queue}'")
+            return True
         except Exception as e:
             print(f"[ERROR] Failed to send message to Redis: {e}")
+            return False
 
     async def _process_message(self, msg, channel_id: int, update_offset: bool = True):
         """
@@ -135,12 +139,16 @@ class TgMonitorService(TelegramServiceBase):
             print(f"{'='*60}\n")
             
             # Send to Redis
+            send_ok = True
             if self.use_redis:
-                await self._send_to_redis(message_data)
-            
-            # Update offset
-            if update_offset:
-                self.offset_tracker.update_offset(channel_id, msg.id)
+                send_ok = await self._send_to_redis(message_data)
+
+            # Update offset only if message was successfully sent to Redis (or Redis is disabled)
+            if send_ok:
+                if update_offset:
+                    self.offset_tracker.update_offset(channel_id, msg.id)
+            else:
+                print(f"[WARN] Offset not updated for message {msg.id} in channel {channel_id} because Redis write failed.")
             
         except Exception as e:
             print(f"[ERROR] Error processing message: {e}")
